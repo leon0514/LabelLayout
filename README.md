@@ -1,6 +1,6 @@
 # LabelLayoutSolver
 
-**LabelLayoutSolver** 是一个轻量级、无依赖（Header-only）的 C++ 标签布局求解器。它专门用于解决 2D 绘图场景中（如目标检测标注、图表标注、游戏 UI）文字标签与物体之间、标签与标签之间的重叠问题。
+**LabelLayoutSolver** 是一个轻量级、无依赖（Header-only）的 C++ 标签布局求解器。它专门用于解决 目标检测标注文字标签与物体之间、标签与标签之间的重叠问题。
 
 ## ✨ 主要特性
 
@@ -8,7 +8,7 @@
 *   **智能避让**：自动计算标签位置，防止标签相互遮挡，同时尽量不遮挡被标注的目标物体。
 *   **动态缩放**：当空间极其拥挤时，支持自动缩小字号以适配布局（多级字体大小尝试）。
 *   **高性能**：内置 **Uniform Grid（均匀网格）** 空间索引，在大量标签（数百个）场景下仍能保持极高的求解速度。
-*   **高度可定制**：支持自定义字体测量回调函数，可轻松对接 FreeType, GDI+, Qt, OpenCV, ImGui 等渲染后端。
+*   **高度可定制**：支持自定义字体测量回调函数，可轻松对接 FreeType, OpenCV等渲染后端。
 
 ---
 
@@ -50,16 +50,16 @@ $$ TotalCost = BaseCost + ScalePenalty + OcclusionCost + OverlapCost $$
 ## 🚀 快速上手 (Usage)
 
 ### 1. 引入头文件
-将 `LabelLayoutSolver.hpp` 复制到你的项目中并包含：
+将 `labelLayoutSolver.hpp` 复制到你的项目中并包含：
 
 ```cpp
-#include "LabelLayoutSolver.hpp"
+#include "labelLayoutSolver.hpp"
 ```
 
 ### 2. 定义字体测量函数
 求解器需要知道文字在不同字号下的实际宽高。你需要提供一个回调函数（Lambda 或函数指针）。
 
-> **注意**：这里的测量逻辑应与你实际绘图使用的库一致（如 `cv::getTextSize`, `QFontMetrics`, `ImGui::CalcTextSize` 等）。
+> **注意**：这里的测量逻辑应与你实际绘图使用的库一致（如 `cv::getTextSize`）。
 
 ```cpp
 // 示例：一个简单的模拟测量函数
@@ -168,13 +168,6 @@ int main() {
 *   `COST_TL_OUTER`, `COST_TR_OUTER` 等：调整各个方位的偏好权重。值越小，优先级越高。
 *   `COST_SCALE_TIER`：缩放惩罚。如果你完全不想让字体缩小，可以将此值设为无穷大。
 *   `COST_OCCLUDE_OBJ`：遮挡物体的代价。如果你不介意标签挡住物体，可减小此值。
-
-## ⚠️ 注意事项
-
-1.  **坐标系**：默认坐标系原点为左上角 (X 向右, Y 向下)。
-2.  **性能**：对于 < 500 个物体的场景，求解通常在毫秒级完成。极大量级建议分区域求解。
-3.  **字体测量**：`measureFunc` 的准确性直接决定了布局效果。务必确保传入的函数能准确反映渲染时的文本大小。
-
 ---
 
 ### License
