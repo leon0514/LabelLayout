@@ -161,6 +161,10 @@ int main() {
 }
 ```
 
+## 效果图
+<img width="1568" height="1068" alt="image" src="https://github.com/user-attachments/assets/5e8b60dd-2ba5-4e7e-b8b3-37ed52d474a4" />
+
+
 ## ⚙️ 参数调优 (Advanced)
 
 如果你需要调整布局策略（例如更喜欢把标签放在物体内部，或者禁止字体缩小），可以在 `LabelLayoutSolver.hpp` 的 `private` 区域修改以下常量：
