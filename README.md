@@ -17,7 +17,7 @@
 ## 🛠 编译与安装
 
 ### 环境依赖
-*   C++11 或更高版本的编译器
+*   C++17 或更高版本的编译器
 *   CMake (>= 3.15)
 *   Python 3.x
 *   [pybind11](https://github.com/pybind/pybind11) (`pip install pybind11`)
@@ -69,7 +69,7 @@ for i, res in enumerate(results):
 | :--- | :--- | :--- |
 | `costPos1_Top` | 0 | 优先级 1：物体正上方对齐 |
 | `costPos2_Right` | 10 | 优先级 2：物体右侧对齐 |
-| `costPos3_Bottom` | 20 | 标签之间相互重叠的代价权重。 |
+| `costPos3_Bottom` | 20 | 优先级 3：物体下方对齐。 |
 | `costPos4_Left` | 30 | 优先级 4：物体左侧对齐 |
 | `costSlidingPenalty` | 100 | 滑动基准惩罚。设为 100 确保优先尝试固定锚点，无解才滑动 |
 | `maxIterations`| 30 | 迭代轮数。锚点增多后，建议设为 30-50 以获得更稳健的结果。 |

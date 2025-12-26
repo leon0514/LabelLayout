@@ -17,14 +17,12 @@ std::string result_repr(const LayoutResult& r) {
 PYBIND11_MODULE(layout_solver, m) {
     m.doc() = "Pybind11 binding for Optimized LabelLayoutSolver with 4-Anchor Priority";
 
-    // 1. 绑定 TextSize
     py::class_<TextSize>(m, "TextSize")
         .def(py::init<int, int, int>(), py::arg("width"), py::arg("height"), py::arg("baseline")=0)
         .def_readwrite("width", &TextSize::width)
         .def_readwrite("height", &TextSize::height)
         .def_readwrite("baseline", &TextSize::baseline);
 
-    // 2. 绑定配置 LayoutConfig (重点更新部分)
     py::class_<LayoutConfig>(m, "LayoutConfig")
         .def(py::init<>())
         // 基础设置
@@ -46,7 +44,6 @@ PYBIND11_MODULE(layout_solver, m) {
         .def_readwrite("costOccludeObj", &LayoutConfig::costOccludeObj)         // 遮挡物体的惩罚
         .def_readwrite("costOverlapBase", &LayoutConfig::costOverlapBase);      // 标签间重叠的惩罚
 
-    // 3. 绑定 LayoutResult
     py::class_<LayoutResult>(m, "LayoutResult")
         .def_readonly("x", &LayoutResult::x)
         .def_readonly("y", &LayoutResult::y)
@@ -56,7 +53,6 @@ PYBIND11_MODULE(layout_solver, m) {
         .def_readonly("textAscent", &LayoutResult::textAscent)
         .def("__repr__", &result_repr);
 
-    // 4. 绑定 LabelLayoutSolver
     py::class_<LabelLayoutSolver>(m, "LabelLayoutSolver")
         .def(py::init<int, int, std::function<TextSize(const std::string&, int)>, const LayoutConfig&>(),
              py::arg("w"), py::arg("h"), py::arg("measure_func"), py::arg("config") = LayoutConfig())
