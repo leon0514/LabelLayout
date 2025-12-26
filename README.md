@@ -22,27 +22,18 @@
 *   Python 3.x
 *   [pybind11](https://github.com/pybind/pybind11) (`pip install pybind11`)
 
-### 编译步骤
+### pip 安装
 ```bash
-mkdir build
-cd build
-cmake ..
-make
+pip install -e .
 ```
-编译成功后，生成的 Python 模块 (`layout_solver`) 和 C++ 示例程序将位于 `workspace/` 目录下。
 
 ## 🐍 Python 使用示例
 
 ```python
 import sys
 import os
-
-# 确保能找到生成的 .so 或 .pyd 文件
-sys.path.append(os.path.join(os.getcwd(), "workspace"))
 import layout_solver
 
-# 1. 定义文本测量函数
-# 这个函数会被求解器频繁调用，用于获取不同字号下文字的实际宽高
 def my_measure_func(text, font_size):
     # 这里可以使用 PIL.ImageFont 或 OpenCV 的 getTextSize
     # 返回: layout_solver.TextSize(width, height, baseline)

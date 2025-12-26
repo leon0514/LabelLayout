@@ -1,0 +1,16 @@
+[build-system]
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "layout_solver"
+version = "0.0.1"
+# ... 其他配置 ...
+
+[tool.scikit-build]
+# 这确保了构建系统能找到 cmake
+cmake.version = ">=3.15"
+# 自动发现并安装编译产物
+wheel.py-api = "cp313" 
+# 如果你使用了 editable 模式，有时候需要这个来辅助定位
+build.verbose = true
