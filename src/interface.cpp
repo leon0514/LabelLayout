@@ -36,9 +36,8 @@ PYBIND11_MODULE(layout_solver, m) {
         .def_readwrite("paddingY", &LayoutConfig::paddingY)
         
         // 核心权重 (Updated)
-        .def_readwrite("costOverlapBase", &LayoutConfig::costOverlapBase) // 原 costOverlapLabel 替换为此
+        .def_readwrite("costOverlapBase", &LayoutConfig::costOverlapBase)
         .def_readwrite("costOccludeObj", &LayoutConfig::costOccludeObj)
-        .def_readwrite("costSelfOverlap", &LayoutConfig::costSelfOverlap)
         
         // 偏好权重
         .def_readwrite("costScaleTier", &LayoutConfig::costScaleTier)     // 字体缩小惩罚
