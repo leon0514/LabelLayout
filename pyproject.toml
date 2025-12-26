@@ -1,17 +1,26 @@
 [build-system]
-requires = ["scikit-build-core", "pybind11"]
+requires = ["scikit-build-core>=0.10.0", "pybind11>=2.12.0"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "layout_solver"
-requires-python = ">=3.8"
 version = "0.0.1"
-# ... 其他配置 ...
+requires-python = ">=3.8"
+# ...作者信息等...
 
 [tool.scikit-build]
-# 这确保了构建系统能找到 cmake
 cmake.version = ">=3.15"
-# 自动发现并安装编译产物
-wheel.py-api = "cp313" 
-# 如果你使用了 editable 模式，有时候需要这个来辅助定位
-build.verbose = true
+# 自动剥离二进制符号以减小体积
+cmake.build-type = "Release"
+# 确保 3.13 兼容性
+wheel.py-api = "cp313"
+
+[tool.cibuildwheel]
+skip = "pp* cp36-* *-manylinux_i686 *-musllinux_i686"
+
+# 如果你想构建速度快一点，只构建你关心的版本
+build = "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
+
+[tool.cibuildwheel.linux]
+# 使用 manylinux_2_28 或 manylinux2014 以获得更好的兼容性
+manylinux-x86_64-image = "manylinux_2_28"
