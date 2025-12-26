@@ -4,6 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "layout_solver"
+requires-python = ">=3.8"
 version = "0.0.1"
 # ... 其他配置 ...
 
