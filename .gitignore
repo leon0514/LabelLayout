@@ -1,0 +1,4 @@
+build/
+workspace/*
+!workspace/*.py
+!workspace/*.gif

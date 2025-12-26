@@ -1,178 +1,97 @@
 # LabelLayoutSolver
 
-**LabelLayoutSolver** 是一个轻量级、无依赖（Header-only）的 C++ 标签布局求解器。它专门用于解决 目标检测标注文字标签与物体之间、标签与标签之间的重叠问题。
+一个高性能、可配置的 2D 标签布局求解器，采用 C++ 编写并提供 Python 绑定。它旨在解决复杂的标注重叠问题，支持动态字体缩放、空间索引加速和启发式迭代优化。
 
-## ✨ 主要特性
+## 🚀 核心特性
 
-*   **零依赖**：单头文件 (`.hpp`)，直接包含即可使用，不依赖 OpenCV、Qt 或 boost。
-*   **智能避让**：自动计算标签位置，防止标签相互遮挡，同时尽量不遮挡被标注的目标物体。
-*   **动态缩放**：当空间极其拥挤时，支持自动缩小字号以适配布局（多级字体大小尝试）。
-*   **高性能**：内置 **Uniform Grid（均匀网格）** 空间索引，在大量标签（数百个）场景下仍能保持极高的求解速度。
-*   **高度可定制**：支持自定义字体测量回调函数，可轻松对接 FreeType, OpenCV等渲染后端。
+*   **空间索引加速**：内置 `FlatUniformGrid`（均匀网格），在处理数百个标签时依然保持高性能。
+*   **多策略候选生成**：支持在目标物体周边的多个位置（如 Top-Outer, Bottom-Inner, Side 等）尝试布局。
+*   **动态字体缩放**：当空间拥挤时，算法会自动尝试减小字号以寻找非重叠解。
+*   **软约束代价系统**：基于代价函数（Cost Function）平衡标签位置偏好、目标遮挡、标签互斥等冲突。
+*   **随机化迭代优化**：通过随机打乱顺序的局部搜索（Local Search）机制，有效避免局部最优。
 
----
+## 🛠 编译与安装
 
-## 🧠 核心原理 (Algorithm)
+### 环境依赖
+*   C++11 或更高版本的编译器
+*   CMake (>= 3.15)
+*   Python 3.x
+*   [pybind11](https://github.com/pybind/pybind11) (`pip install pybind11`)
 
-该求解器不使用复杂的物理引擎或遗传算法，而是采用了一种高效的 **离散化候选点评估 + 贪心迭代策略**。
+### 编译步骤
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+编译成功后，生成的 Python 模块 (`layout_solver`) 和 C++ 示例程序将位于 `workspace/` 目录下。
 
-### 1. 候选位置生成 (Candidate Generation)
-对于每一个被标注物体，算法会围绕其边界（上、下、左、右）以及内部生成数十个潜在的标签放置位置（Candidates）。
-*   **位置偏好**：预设了位置优先级，例如：`左上外侧` > `左上内侧` > `右下外侧` 等。
-*   **滑动窗口**：在每一条边上，标签会尝试沿边缘滑动，生成多个候选坐标。
-*   **多级缩放**：除了基准字号（1.0x），还会生成 0.9x, 0.8x ... 0.5x 的候选框。为了保证可读性，算法给予缩放极大的惩罚权重（只有在不缩放就一定重叠时才会选择缩放）。
+## 🐍 Python 使用示例
 
-### 2. 代价函数 (Cost Function)
-每个候选位置都有一个 `TotalCost`，越小越好：
+```python
+import sys
+import os
 
-$$ TotalCost = BaseCost + ScalePenalty + OcclusionCost + OverlapCost $$
+# 确保能找到生成的 .so 或 .pyd 文件
+sys.path.append(os.path.join(os.getcwd(), "workspace"))
+import layout_solver
 
-*   **BaseCost**：位置偏好（例如放在左上角比放在中间好）。
-*   **ScalePenalty**：字体缩小的惩罚（阶梯式惩罚，强烈倾向于保持原字号）。
-*   **OcclusionCost**：遮挡物体本身的惩罚（尽量不盖住物体）。
-*   **OverlapCost**：与其他标签重叠的惩罚（这是致命惩罚，权重极大）。
+# 1. 定义文本测量函数
+# 这个函数会被求解器频繁调用，用于获取不同字号下文字的实际宽高
+def my_measure_func(text, font_size):
+    # 这里可以使用 PIL.ImageFont 或 OpenCV 的 getTextSize
+    # 返回: layout_solver.TextSize(width, height, baseline)
+    estimated_width = len(text) * (font_size // 2)
+    return layout_solver.TextSize(estimated_width, font_size, 2)
 
-### 3. 空间索引 (Spatial Indexing)
-为了避免 $O(N^2)$ 的两两碰撞检测，内部实现了一个 `UniformGrid`。
-*   将画布划分为 $100 \times 100$ 的网格。
-*   查询某个区域是否被占用只需检查对应的几个网格单元，极大地加速了冲突检测。
+# 2. 配置求解器参数
+config = layout_solver.LayoutConfig()
+config.maxIterations = 25
+config.costOverlapBase = 100000.0   # 标签重叠的高额惩罚
+config.costScaleTier = 5000.0       # 鼓励在必要时缩小字体
 
-### 4. 迭代求解 (Iterative Solver)
-1.  **静态初始化**：首先根据位置偏好和物体遮挡情况，为每个物体选择一个“当前最佳”候选位置。
-2.  **冲突消解循环**：
-    *   构建当前所有选中标签的空间网格。
-    *   遍历每个标签，检查是否与其他标签重叠。
-    *   如果发生重叠，重新评估该物体的所有候选位置，寻找一个通过 grid 查询确认不重叠且代价最小的新位置。
-    *   重复此过程直到无冲突或达到最大迭代次数。
+# 3. 初始化求解器 (画布宽高: 1920x1080)
+solver = layout_solver.LabelLayoutSolver(1920, 1080, my_measure_func, config)
 
----
+# 4. 添加待布局的对象
+# 参数: left, top, right, bottom, text, base_font_size
+solver.add(100, 100, 200, 200, "Target_01", 16)
+solver.add(150, 150, 250, 250, "Target_02", 16)
 
-## 🚀 快速上手 (Usage)
+# 5. 执行布局计算
+solver.solve()
 
-### 1. 引入头文件
-将 `labelLayoutSolver.hpp` 复制到你的项目中并包含：
-
-```cpp
-#include "labelLayoutSolver.hpp"
+# 6. 获取结果
+results = solver.get_results()
+for i, res in enumerate(results):
+    print(f"Label {i}: pos=({res.x}, {res.y}), size={res.width}x{res.height}, font_size={res.fontSize}")
 ```
 
-### 2. 定义字体测量函数
-求解器需要知道文字在不同字号下的实际宽高。你需要提供一个回调函数（Lambda 或函数指针）。
+## ⚙️ 参数详解 (`LayoutConfig`)
 
-> **注意**：这里的测量逻辑应与你实际绘图使用的库一致（如 `cv::getTextSize`）。
+| 属性 | 默认值 | 描述 |
+| :--- | :--- | :--- |
+| `maxIterations` | 20 | 最大迭代轮数，复杂场景下可适当调大。 |
+| `gridSize` | 100 | 空间索引网格大小，通常设为平均标签尺寸的 1-2 倍。 |
+| `costOverlapBase` | 100000 | 标签之间相互重叠的代价权重。 |
+| `costOccludeObj` | 100000 | 标签遮挡其他目标物体的代价权重。 |
+| `costScaleTier` | 10000 | 字体每缩小一个等级（0.9x, 0.8x等）增加的固定惩罚。 |
+| `costSlidingPenalty`| 5.0 | 标签偏离目标中心点（滑动）产生的惩罚。 |
+| `paddingX / Y` | 2 | 标签文本周围预留的像素边距。 |
 
-```cpp
-// 示例：一个简单的模拟测量函数
-// 返回结构：{宽度, Ascent(基线以上高度), Descent(基线以下高度)}
-auto measureFunc = [](const std::string& text, int fontSize) -> TextSize {
-    // 假设每个字符宽度为 fontSize * 0.6，高度为 fontSize
-    int w = static_cast<int>(text.length() * fontSize * 0.6f);
-    int h = fontSize; 
-    int baseline = fontSize / 4; 
-    return {w, h, baseline};
-};
-```
+## 📐 算法原理
 
-### 3. 初始化与添加数据
+1.  **候选池生成**：为每个 Item 生成不同方位（Top/Bottom/Left/Right/Inner/Outer）以及不同缩放级别（1.0x, 0.9x, 0.8x, 0.75x）的候选框。
+2.  **静态初始化**：首先计算候选框与所有已知“物体框”的遮挡关系，通过贪心策略选择一个静态冲突最少的位置。
+3.  **迭代优化**：
+    *   在每一轮迭代中，随机打乱标签的处理顺序。
+    *   针对每个标签，通过空间索引查询与其发生重叠的其他标签。
+    *   计算当前“动态代价”，并尝试在候选池中寻找能降低全局总代价（几何+静态+动态）的更好位置。
+    *   当不再有位置变动或达到最大迭代次数时停止。
 
-```cpp
-// 1. 创建求解器 (画布宽 1920, 高 1080)
-LabelLayoutSolver solver(1920, 1080, measureFunc);
+## 🌓 布局效果展示及迭代过程
+![alt text](workspace/demo.gif)
 
-// 2. 添加被标注物体
-// 参数: left, top, right, bottom, 标签文本, 基准字号
-solver.add(100, 100, 200, 200, "Person: 98%", 20);
-solver.add(180, 180, 300, 300, "Car: 85%", 20); // 故意制造重叠场景
-solver.add(500, 500, 550, 550, "Small Object", 16);
-```
-
-### 4. 求解与获取结果
-
-```cpp
-// 3. 执行布局计算
-solver.solve();
-
-// 4. 获取结果
-auto results = solver.getResults();
-
-// 5. 绘制结果
-for (size_t i = 0; i < results.size(); ++i) {
-    const auto& res = results[i];
-    
-    // res.x, res.y 是计算出的标签左上角坐标
-    // res.fontSize 是建议使用的字号（可能被缩小）
-    printf("Label %zu: Pos(%.1f, %.1f), Size(%dx%d), Font: %d\n", 
-            i, res.x, res.y, res.width, res.height, res.fontSize);
-            
-    // 在此处调用你的绘图函数，例如：
-    // drawRect(res.x, res.y, res.width, res.height);
-    // drawText(text[i], res.x, res.y + res.textAscent, res.fontSize);
-}
-```
-
----
-
-## 🛠️ 完整示例代码
-
-这是一个可直接编译运行的 `main.cpp` 示例：
-
-```cpp
-#include <iostream>
-#include <vector>
-#include "LabelLayoutSolver.hpp"
-
-int main() {
-    // 1. 定义测量函数 (这里使用模拟数据，实际请对接你的 UI 库)
-    auto mockMeasure = [](const std::string& text, int fontSize) -> TextSize {
-        return {
-            (int)(text.length() * fontSize * 0.6), // width
-            fontSize,                              // height (ascent)
-            (int)(fontSize * 0.2)                  // baseline (descent)
-        };
-    };
-
-    // 2. 初始化求解器 (画布 800x600)
-    LabelLayoutSolver solver(800, 600, mockMeasure);
-
-    // 3. 添加一些重叠的物体
-    // 物体 A
-    solver.add(100, 100, 200, 200, "Object A", 24);
-    // 物体 B (紧挨着 A，会导致默认的左上角标签重叠)
-    solver.add(120, 80, 220, 180, "Object B (Conflict)", 24);
-    // 物体 C (在边缘，测试边界检查)
-    solver.add(750, 10, 790, 50, "Edge Case", 20);
-
-    // 4. 求解
-    std::cout << "Solving layout..." << std::endl;
-    solver.solve();
-
-    // 5. 输出结果
-    auto results = solver.getResults();
-    for (size_t i = 0; i < results.size(); ++i) {
-        const auto& r = results[i];
-        std::cout << "Item " << i << " layout: "
-                  << "X=" << r.x << ", Y=" << r.y 
-                  << " [W=" << r.width << ", H=" << r.height << "]"
-                  << " FontSize=" << r.fontSize 
-                  << std::endl;
-    }
-
-    return 0;
-}
-```
-
-## 效果图
-<img width="1568" height="1068" alt="image" src="https://github.com/user-attachments/assets/5e8b60dd-2ba5-4e7e-b8b3-37ed52d474a4" />
-
-
-## ⚙️ 参数调优 (Advanced)
-
-如果你需要调整布局策略（例如更喜欢把标签放在物体内部，或者禁止字体缩小），可以在 `LabelLayoutSolver.hpp` 的 `private` 区域修改以下常量：
-
-*   `COST_TL_OUTER`, `COST_TR_OUTER` 等：调整各个方位的偏好权重。值越小，优先级越高。
-*   `COST_SCALE_TIER`：缩放惩罚。如果你完全不想让字体缩小，可以将此值设为无穷大。
-*   `COST_OCCLUDE_OBJ`：遮挡物体的代价。如果你不介意标签挡住物体，可减小此值。
----
-
-### License
-MIT License 
+## 📄 许可证
+[MIT License](LICENSE)
