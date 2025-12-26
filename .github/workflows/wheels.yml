@@ -1,5 +1,9 @@
-name: Build and Upload
-on: [push, pull_request]
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # 仅当推送以 v 开头的标签时触发发布（例如 v0.1.0）
 
 jobs:
   build_wheels:
@@ -11,11 +15,45 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_BUILD: "*"
+          CIBW_SKIP: "pp* cp36-*" # 跳过之前报错的版本
+
       - uses: actions/upload-artifact@v4
         with:
+          # 注意：为了后面汇总，我们统一 artifact 的前缀
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
+
+  # 新增：发布 Release 任务
+  publish_release:
+    name: Create GitHub Release
+    needs: [build_wheels] # 必须等待所有平台编译完成
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 必须开启写入权限才能发布 Release
+
+    steps:
+      - name: 下载所有编译好的 Wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-wheels-* # 下载前面任务上传的所有包
+          path: dist
+          merge-multiple: true
+
+      - name: 查看下载的文件 (调试用)
+        run: ls -R dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.whl # 将 dist 目录下所有的 wheel 上传为附件
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true # 自动根据提交记录生成更新日志
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用系统自动生成的 Token
