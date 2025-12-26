@@ -77,7 +77,7 @@ for i, res in enumerate(results):
 | `costPos2_Right` | 10 | 优先级 2：物体右侧对齐 |
 | `costPos3_Bottom` | 20 | 标签之间相互重叠的代价权重。 |
 | `costPos4_Left` | 30 | 优先级 4：物体左侧对齐 |
-| `costSlidingPenalty` | 10000 | 滑动基准惩罚。设为 100 确保优先尝试固定锚点，无解才滑动 |
+| `costSlidingPenalty` | 100 | 滑动基准惩罚。设为 100 确保优先尝试固定锚点，无解才滑动 |
 | `maxIterations`| 30 | 迭代轮数。锚点增多后，建议设为 30-50 以获得更稳健的结果。 |
 | `costScaleTier` | 10000 | 缩放惩罚。保持极大值可优先保证字号，实在放不下才缩小。 |
 | `costOccludeObj` | 100000 | 遮挡物体的惩罚，保持极大值，一旦发生碰撞，成本会迅速超过滑动惩罚|
