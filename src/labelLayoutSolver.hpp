@@ -53,12 +53,12 @@ struct LayoutConfig {
     int paddingY = 2;
 
     float costTlOuter = 0.0f;
-    float costTrOuter = 10.0f;
+    float costTrOuter = 5.0f;
     float costBlOuter = 20.0f;
-    float costBrOuter = 30.0f;
+    float costBrOuter = 25.0f;
     float costSide    = 40.0f;
 
-    float costSlidingPenalty = 5.0f;
+    float costSlidingPenalty = 50.0f;
     float costScaleTier      = 10000.0f; 
     float costOccludeObj     = 100000.0f;  
     float costOverlapBase    = 100000.0f;
@@ -364,6 +364,7 @@ public:
 
 private:
     void generateCandidatesInternal(LayoutItem& item, const std::string& text, int baseFontSize) {
+        // 定义缩放层级
         static const struct { float scale; int tier; } levels[] = {
             {1.0f, 0}, {0.9f, 1}, {0.8f, 2}, {0.75f, 3} 
         };
@@ -385,32 +386,51 @@ private:
                 candidatePool.emplace_back();
                 auto& c = candidatePool.back();
                 c.box = {x, y, x + fW, y + fH};
-                c.geometricCost = posCost; c.staticCost = 0;
+                c.geometricCost = posCost + scalePenalty; // 加上字号缩放惩罚
+                c.staticCost = 0;
                 c.area = area; c.invArea = invArea;
                 c.fontSize = (int16_t)fontSize; c.textAscent = (int16_t)ts.height;
             };
 
-            // 采样优化
-            int steps = (lvl.tier <= 1) ? 8 : 4; 
-            float invSteps = (steps > 0) ? 1.0f / steps : 0.0f;
+            // --- 1. 优先生成离散锚点 (最优位置) ---
+            // 顶部两角
+            addCand(obj.left, obj.top - fH, config.costTlOuter);           // 左上 (TL)
+            addCand(obj.right - fW, obj.top - fH, config.costTrOuter);     // 右上 (TR)
+            // 底部两角
+            addCand(obj.left, obj.bottom, config.costBlOuter);            // 左下 (BL)
+            addCand(obj.right - fW, obj.bottom, config.costBrOuter);       // 右下 (BR)
 
-            // Top/Bottom
+            // --- 2. 生成滑动候选点 (仅当锚点不可用时) ---
+            // 这里的关键是 posCost 必须显著高于上面的锚点成本
+            int steps = 6; 
+            float invSteps = 1.0f / steps;
+            
+            // 开启滑动的基准惩罚（必须大于任何锚点的基础成本差）
+            float baseSlidePenalty = 50.0f; 
+
+            // 顶部/底部边的中间滑动位 (排除 r=0 和 r=1，因为已经作为锚点添加过了)
             float rangeX = std::max(0.0f, obj.right - fW - obj.left);
-            for (int i = 0; i <= steps; ++i) {
-                float r = i * invSteps;
-                float x = obj.left + rangeX * r;
-                float posP = std::abs(r - 0.5f) * 2.0f * config.costSlidingPenalty + scalePenalty;
-                addCand(x, obj.top - fH, config.costTlOuter + posP); 
-                addCand(x, obj.bottom, config.costBlOuter + posP); 
+            if (rangeX > 1.0f) {
+                for (int i = 1; i < steps; ++i) {
+                    float r = i * invSteps;
+                    float x = obj.left + rangeX * r;
+                    // 滑动代价 = 基准惩罚 + 微小的线性偏移(偏好左侧)
+                    float slideCost = baseSlidePenalty + (r * 10.0f); 
+                    addCand(x, obj.top - fH, config.costTlOuter + slideCost);
+                    addCand(x, obj.bottom, config.costBlOuter + slideCost);
+                }
             }
-            // Left/Right
+
+            // 左侧/右侧边的中间滑动位
             float rangeY = std::max(0.0f, obj.bottom - fH - obj.top);
-            for (int i = 0; i <= steps; ++i) {
-                float r = i * invSteps;
-                float y = obj.top + rangeY * r;
-                float posP = config.costSide + std::abs(r - 0.5f) * 2.0f * config.costSlidingPenalty + scalePenalty;
-                addCand(obj.left - fW, y, posP); 
-                addCand(obj.right, y, posP); 
+            if (rangeY > 1.0f) {
+                for (int i = 1; i < steps; ++i) {
+                    float r = i * invSteps;
+                    float y = obj.top + rangeY * r;
+                    float slideCost = baseSlidePenalty + (r * 10.0f);
+                    addCand(obj.left - fW, y, config.costSide + slideCost);
+                    addCand(obj.right, y, config.costSide + slideCost);
+                }
             }
         }
     }
