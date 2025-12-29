@@ -9,6 +9,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 find_package(pybind11 CONFIG REQUIRED)
 
 # 模块定义
-pybind11_add_module(layout_solver src/interface.cpp)
+pybind11_add_module(labellayout src/interface.cpp)
 
-install(TARGETS layout_solver DESTINATION .)
+install(TARGETS labellayout DESTINATION .)

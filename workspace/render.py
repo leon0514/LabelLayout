@@ -1,4 +1,4 @@
-import layout_solver as cpp_solver
+import labellayout
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import Rectangle
@@ -7,19 +7,19 @@ import random
 # ==========================================
 # 1. 基础配置
 # ==========================================
-def py_measure_func(text: str, font_size: int) -> cpp_solver.TextSize:
+def py_measure_func(text: str, font_size: int) -> labellayout.TextSize:
     # 模拟字体测量
     w = int(len(text) * font_size * 0.6)
     h = int(font_size * 1.2) # 稍微增加一点高度容余，让框好看点
-    return cpp_solver.TextSize(w, h, 0)
+    return labellayout.TextSize(w, h, 0)
 
 CANVAS_W, CANVAS_H = 800, 600
-cfg = cpp_solver.LayoutConfig()
+cfg = labellayout.LayoutConfig()
 cfg.gridSize = 50
 cfg.paddingX = 2
 cfg.paddingY = 2
 
-solver = cpp_solver.LabelLayoutSolver(CANVAS_W, CANVAS_H, py_measure_func, cfg)
+solver = labellayout.LabelLayout(CANVAS_W, CANVAS_H, py_measure_func, cfg)
 
 # ==========================================
 # 2. 数据生成 & 原始状态计算
@@ -144,28 +144,28 @@ def update(frame):
     
     ax2.set_title(title_text, color='green', fontweight='bold')
     
-    results = solver.get_results()
+    results = solver.layout()
     
     for i, res in enumerate(results):
         obj = objects[i]
         
         # 标签框
         color = '#4da6ff' if res.fontSize >= 18 else 'orange'
-        rect = Rectangle((res.x, res.y), res.width, res.height, 
+        rect = Rectangle((res.left, res.top), res.width, res.height, 
                          linewidth=1, edgecolor='blue', facecolor=color, alpha=0.9)
         ax2.add_patch(rect)
         artists.append(rect)
         
         # 文字
-        txt = ax2.text(res.x + res.width/2, res.y + res.height/2, labels[i],
+        txt = ax2.text(res.left + res.width/2, res.top + res.height/2, labels[i],
                       ha='center', va='center', fontsize=9, color='white', fontweight='bold')
         artists.append(txt)
         
         # 连线
         obj_cx = (obj[0] + obj[2]) / 2
         obj_cy = (obj[1] + obj[3]) / 2
-        lbl_cx = res.x + res.width / 2
-        lbl_cy = res.y + res.height / 2
+        lbl_cx = res.left + res.width / 2
+        lbl_cy = res.top + res.height / 2
         line, = ax2.plot([obj_cx, lbl_cx], [obj_cy, lbl_cy], color='gray', linestyle=':', linewidth=1)
         artists.append(line)
 

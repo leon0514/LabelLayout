@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <random>
 
+
 struct LayoutBox {
     float left, top, right, bottom;
 
@@ -38,11 +39,14 @@ struct TextSize {
 };
 
 struct LayoutResult {
-    float x, y;
+    float left, top;
     int fontSize;
+    int padding_x;
+    int padding_y;
     int width;
     int height;
     int textAscent;
+    int textDescent;
 };
 
 struct LayoutConfig {
@@ -148,7 +152,7 @@ public:
 };
 
 
-class LabelLayoutSolver {
+class LabelLayout {
 public:
     struct Candidate {
         LayoutBox box;
@@ -186,7 +190,7 @@ private:
 
 public:
     template <typename Func>
-    LabelLayoutSolver(int w, int h, Func&& func, const LayoutConfig& cfg = LayoutConfig())
+    LabelLayout(int w, int h, Func&& func, const LayoutConfig& cfg = LayoutConfig())
         : config(cfg), canvasWidth(w), canvasHeight(h), measureFunc(std::forward<Func>(func)), rng(12345)
     {
         items.reserve(128);
@@ -356,14 +360,14 @@ public:
         }
     }
 
-    std::vector<LayoutResult> getResults() const {
+    std::vector<LayoutResult> layout() const {
         std::vector<LayoutResult> results;
         results.reserve(items.size());
         for (const auto& item : items) {
             const auto& cand = candidatePool[item.candStart + item.selectedRelIndex];
             results.push_back({
-                cand.box.left, cand.box.top, (int)cand.fontSize, 
-                (int)cand.box.width(), (int)cand.box.height(), (int)cand.textAscent
+                cand.box.left, cand.box.top, (int)cand.fontSize, (int)config.paddingX, (int)config.paddingY,
+                (int)cand.box.width(), (int)cand.box.height(), (int)cand.textAscent, (int)(cand.box.height() - cand.textAscent)
             });
         }
         return results;

@@ -4,7 +4,7 @@
 #include <random>
 #include <iostream>
 #include <chrono> // 用于计时
-#include "labelLayoutSolver.hpp"
+#include "labelLayout.hpp"
 
 // 用于测试的数据结构
 struct TestObject {
@@ -47,7 +47,7 @@ int main() {
     };
 
     // 4. 初始化求解器
-    LabelLayoutSolver solver(width, height, measureFunc, config);
+    LabelLayout solver(width, height, measureFunc, config);
 
     // 5. 生成随机测试数据
     std::vector<TestObject> testObjects;
@@ -84,7 +84,7 @@ int main() {
     std::cout << "Layout solved in: " << ms.count() << " ms for " << numObjects << " items." << std::endl;
 
     // 7. 获取结果并绘制
-    std::vector<LayoutResult> results = solver.getResults();
+    std::vector<LayoutResult> results = solver.layout();
 
     for (size_t i = 0; i < results.size(); ++i) {
         const auto& res = results[i];
