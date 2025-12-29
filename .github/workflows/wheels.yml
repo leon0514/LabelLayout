@@ -57,3 +57,9 @@ jobs:
           generate_release_notes: true # 自动根据提交记录生成更新日志
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用系统自动生成的 Token
+      # 新增：发布到 PyPI
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # PyPI API Token，需要预先在仓库的 Secrets 中设置
+          password: ${{ secrets.PYPI_API_TOKEN }}
