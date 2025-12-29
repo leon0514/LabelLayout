@@ -3,3 +3,4 @@ workspace/*
 !workspace/*.py
 !workspace/*.gif
 !workspace/*.md
+!workspace/result.jpg
