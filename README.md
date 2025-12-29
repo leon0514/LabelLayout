@@ -32,22 +32,22 @@ pip install -e .
 ```python
 import sys
 import os
-import layout_solver
+import labellayout
 
 def my_measure_func(text, font_size):
     # 这里可以使用 PIL.ImageFont 或 OpenCV 的 getTextSize
     # 返回: layout_solver.TextSize(width, height, baseline)
     estimated_width = len(text) * (font_size // 2)
-    return layout_solver.TextSize(estimated_width, font_size, 2)
+    return labellayout.TextSize(estimated_width, font_size, 2)
 
 # 2. 配置求解器参数
-config = layout_solver.LayoutConfig()
+config = labellayout.LayoutConfig()
 config.maxIterations = 25
 config.costOverlapBase = 100000.0   # 标签重叠的高额惩罚
 config.costScaleTier = 5000.0       # 鼓励在必要时缩小字体
 
 # 3. 初始化求解器 (画布宽高: 1920x1080)
-solver = layout_solver.LabelLayoutSolver(1920, 1080, my_measure_func, config)
+solver = labellayout.LabelLayout(1920, 1080, my_measure_func, config)
 
 # 4. 添加待布局的对象
 # 参数: left, top, right, bottom, text, base_font_size
@@ -58,7 +58,7 @@ solver.add(150, 150, 250, 250, "Target_02", 16)
 solver.solve()
 
 # 6. 获取结果
-results = solver.get_results()
+results = solver.layout()
 for i, res in enumerate(results):
     print(f"Label {i}: pos=({res.x}, {res.y}), size={res.width}x{res.height}, font_size={res.fontSize}")
 ```
