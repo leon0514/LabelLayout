@@ -3,4 +3,9 @@ workspace/*
 !workspace/*.py
 !workspace/*.gif
 !workspace/*.md
+!workspace/smart_label_plotter/
+workspace/smart_label_plotter/dist
+workspace/smart_label_plotter/smart_label_plotter.egg-info
+workspace/smart_label_plotter/api-key
+workspace/smart_label_plotter/__pycache__
 !workspace/result.jpg
