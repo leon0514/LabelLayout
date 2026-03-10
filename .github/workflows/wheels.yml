@@ -12,11 +12,25 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # 新增：缓存 cibuildwheel 下载的环境依赖，彻底避免 HTTP 429 限流，并提速
+      - name: Cache cibuildwheel environment
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\pypa\cibuildwheel\Cache
+            ~/Library/Caches/cibuildwheel
+            ~/.cache/cibuildwheel
+          key: cibw-cache-${{ runner.os }}-${{ matrix.os }}
+
+      # 优化：升级到 2.22.0 (新版本对网络请求有更好的重试机制)
       - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.21.3
+        run: python -m pip install cibuildwheel==2.22.0
+        
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -24,6 +38,7 @@ jobs:
           CIBW_SKIP: "*-win32 *_i686 pp*"
           CIBW_BEFORE_BUILD: "pip install pybind11>=2.13.0"
           CIBW_BUILD_VERBOSITY: "1"
+          
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
