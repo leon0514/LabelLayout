@@ -74,7 +74,8 @@ for i, res in enumerate(results):
 | `costSlidingPenalty` | 100 | 滑动基准惩罚。设为 100 确保优先尝试固定锚点，无解才滑动 |
 | `maxIterations`| 30 | 迭代轮数。锚点增多后，建议设为 30-50 以获得更稳健的结果。 |
 | `costScaleTier` | 10000 | 缩放惩罚。保持极大值可优先保证字号，实在放不下才缩小。 |
-| `costOccludeObj` | 100000 | 遮挡物体的惩罚，保持极大值，一旦发生碰撞，成本会迅速超过滑动惩罚|
+| `costOccludeObj` | 100000 | 遮挡物体的惩罚，保持极大值，一旦发生碰撞，成本会迅速超过滑动惩罚 |
+| `costSelfOcclude` | 10 | 遮挡自己（目标框）的惩罚，设得很低 |
 | `costOverlapBase` | 100000 | 标签间重叠的惩罚，保持极大值，一旦发生碰撞，成本会迅速超过滑动惩罚 |
 | `paddingX / Y` | 2 | 标签文本周围预留的像素边距。 |
 

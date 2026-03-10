@@ -18,7 +18,7 @@ std::string result_repr(const LayoutResult& r) {
            " fontSize=" + std::to_string(r.fontSize) + ">";
 }
 
-PYBIND11_MODULE(labellayout, m) {
+PYBIND11_MODULE(_labellayout_backend, m) {
     m.doc() = "Pybind11 binding for Optimized LabelLayout with 4-Anchor Priority";
 
     py::class_<TextSize>(m, "TextSize")

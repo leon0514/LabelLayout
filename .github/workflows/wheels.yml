@@ -1,65 +1,44 @@
-name: Build and Release
+name: Build and Publish
 
 on:
   push:
-    tags:
-      - 'v*' # 仅当推送以 v 开头的标签时触发发布（例如 v0.1.0）
+    tags: ['v*']
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-
     steps:
       - uses: actions/checkout@v4
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.3
+        run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BUILD: "*"
-          CIBW_SKIP: "pp* cp36-*" # 跳过之前报错的版本
-
+          CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
+          CIBW_SKIP: "*-win32 *_i686 pp*"
+          CIBW_BEFORE_BUILD: "pip install pybind11>=2.13.0"
+          CIBW_BUILD_VERBOSITY: "1"
       - uses: actions/upload-artifact@v4
         with:
-          # 注意：为了后面汇总，我们统一 artifact 的前缀
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
-  # 新增：发布 Release 任务
-  publish_release:
-    name: Create GitHub Release
-    needs: [build_wheels] # 必须等待所有平台编译完成
+  upload_pypi:
+    needs: [build_wheels]
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
-      contents: write # 必须开启写入权限才能发布 Release
-
+      id-token: write
     steps:
-      - name: 下载所有编译好的 Wheels
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          pattern: cibw-wheels-* # 下载前面任务上传的所有包
+          pattern: cibw-*
           path: dist
           merge-multiple: true
-
-      - name: 查看下载的文件 (调试用)
-        run: ls -R dist/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.whl # 将 dist 目录下所有的 wheel 上传为附件
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true # 自动根据提交记录生成更新日志
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用系统自动生成的 Token
-      # 新增：发布到 PyPI
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          # PyPI API Token，需要预先在仓库的 Secrets 中设置
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - uses: pypa/gh-action-pypi-publish@release/v1

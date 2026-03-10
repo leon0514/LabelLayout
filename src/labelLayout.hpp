@@ -11,6 +11,11 @@
 #include <random>
 #include <string>
 
+template<typename T>
+const T& clamp(const T& v, const T& lo, const T& hi) {
+    return (v < lo) ? lo : (hi < v) ? hi : v;
+}
+
 struct LayoutBox {
     float left, top, right, bottom;
 
@@ -412,7 +417,7 @@ private:
             // 滑动采样
             float rangeX = std::max(0.0f, obj.right - fW - obj.left);
             if (rangeX > 1.0f) {
-                int stepsX = std::clamp((int)(rangeX / 40.0f), 3, 15);
+                int stepsX = clamp((int)(rangeX / 40.0f), 3, 15);
                 float invStepsX = 1.0f / (float)stepsX;
                 for (int i = 1; i < stepsX; ++i) {
                     float r = i * invStepsX;
@@ -425,7 +430,7 @@ private:
 
             float rangeY = std::max(0.0f, obj.bottom - fH - obj.top);
             if (rangeY > 1.0f) {
-                int stepsY = std::clamp((int)(rangeY / 40.0f), 3, 15);
+                int stepsY = clamp((int)(rangeY / 40.0f), 3, 15);
                 float invStepsY = 1.0f / (float)stepsY;
                 for (int i = 1; i < stepsY; ++i) {
                     float r = i * invStepsY;
