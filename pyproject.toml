@@ -13,10 +13,11 @@ authors = [{name = "Leon"}]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
 ]
 
 [tool.scikit-build]
+wheel.expand-macos-universal2 = true
 build.verbose = true
-wheel.packages = ["labellayout"]
-
