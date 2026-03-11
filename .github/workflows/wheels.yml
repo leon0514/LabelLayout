@@ -8,9 +8,12 @@ jobs:
   build_wheels:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        # 建议：如果还是触发限流，可以将 os 拆分成独立的 job
+        # 将 os 和 python 版本放入矩阵，总共产生约 18 个并发任务
         os: [ubuntu-latest, windows-latest, macos-latest]
+        python: [cp38, cp39, cp310, cp311, cp312, cp313]
+        
     steps:
       - uses: actions/checkout@v4
       
@@ -18,33 +21,22 @@ jobs:
         with:
           python-version: '3.12'
 
-      # 缓存 pip 包，加速构建
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
-
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.22.0
         
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          # 1. 核心修复：强制使用 pip 作为构建前端，不再下载 virtualenv.pyz
-          CIBW_BUILD_FRONTEND: "pip"
-          
-          # 2. 预安装必要工具，确保环境一致性
-          CIBW_BEFORE_BUILD: "pip install virtualenv pybind11>=2.13.0"
-          
-          # 3. 指定构建范围
-          CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
+          # 仅构建当前 Matrix 矩阵中指定的那个版本
+          CIBW_BUILD: "${{ matrix.python }}-*"
           CIBW_SKIP: "*-win32 *_i686 pp*"
+          CIBW_BEFORE_BUILD: "pip install pybind11>=2.13.0"
           CIBW_BUILD_VERBOSITY: "1"
           
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          # 每个构建任务生成唯一的 artifact 名称，防止命名冲突
+          name: wheels-${{ matrix.os }}-${{ matrix.python }}
           path: ./wheelhouse/*.whl
 
   upload_pypi:
@@ -56,7 +48,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: cibw-*
+          # 下载所有 build_wheels 产生的产物
+          pattern: wheels-*
           path: dist
           merge-multiple: true
       - uses: pypa/gh-action-pypi-publish@release/v1
