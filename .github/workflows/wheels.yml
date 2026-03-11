@@ -9,6 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        # 建议：如果还是触发限流，可以将 os 拆分成独立的 job
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
@@ -17,26 +18,28 @@ jobs:
         with:
           python-version: '3.12'
 
-      # 新增：缓存 cibuildwheel 下载的环境依赖，彻底避免 HTTP 429 限流，并提速
-      - name: Cache cibuildwheel environment
+      # 缓存 pip 包，加速构建
+      - name: Cache pip
         uses: actions/cache@v4
         with:
-          path: |
-            ~\AppData\Local\pypa\cibuildwheel\Cache
-            ~/Library/Caches/cibuildwheel
-            ~/.cache/cibuildwheel
-          key: cibw-cache-${{ runner.os }}-${{ matrix.os }}
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
 
-      # 优化：升级到 2.22.0 (新版本对网络请求有更好的重试机制)
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.22.0
         
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
+          # 1. 核心修复：强制使用 pip 作为构建前端，不再下载 virtualenv.pyz
+          CIBW_BUILD_FRONTEND: "pip"
+          
+          # 2. 预安装必要工具，确保环境一致性
+          CIBW_BEFORE_BUILD: "pip install virtualenv pybind11>=2.13.0"
+          
+          # 3. 指定构建范围
           CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
           CIBW_SKIP: "*-win32 *_i686 pp*"
-          CIBW_BEFORE_BUILD: "pip install pybind11>=2.13.0"
           CIBW_BUILD_VERBOSITY: "1"
           
       - uses: actions/upload-artifact@v4
