@@ -4,19 +4,19 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "labellayout"
-version = "0.0.2"
+version = "0.0.3" 
 description = "Text Box layout."
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [{name = "Leon"}]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [tool.scikit-build]
-# 声明 Python 源码包所在的目录
+build.verbose = true
 wheel.packages = ["labellayout"]
 
-[tool.cibuildwheel]
-build-verbosity = "1"
-
-[tool.cibuildwheel.linux]
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
